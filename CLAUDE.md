@@ -24,4 +24,11 @@ Airline Manager JS — a JavaScript-based airline management application. This i
 - **State management:** Pinia (`src/stores/`)
 - **Testing:** Vitest + @vue/test-utils; tests live in `src/components/__tests__/`
 - **Linting/Formatting:** ESLint 9 (flat config in `eslint.config.ts`) + Prettier
+- **Mapping:** Leaflet + @vue-leaflet/vue-leaflet for interactive maps; ESRI World Shaded Relief tiles (no API key)
 - **Path alias:** `@/` maps to `src/`
+
+## Key Views
+
+- **HomeView** (`src/views/HomeView.vue`) — landing page
+- **MapView** (`src/views/MapView.vue`) — interactive map displaying airports and flight routes using Leaflet
+- **AboutView** (`src/views/AboutView.vue`) — about page
