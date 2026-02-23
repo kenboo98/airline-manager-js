@@ -1,49 +1,61 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import 'leaflet/dist/leaflet.css'
 import { LMap, LTileLayer, LMarker, LPopup, LPolyline } from '@vue-leaflet/vue-leaflet'
+import { useAirportStore } from '@/stores/airportStore'
+import { useFlightStore } from '@/stores/flightStore'
+import { useGameStore } from '@/stores/gameStore'
+import { interpolatePosition } from '@/utils/geo'
 
-interface Airport {
-  code: string
-  name: string
-  lat: number
-  lng: number
-}
+const router = useRouter()
+const airportStore = useAirportStore()
+const flightStore = useFlightStore()
+const gameStore = useGameStore()
 
-const airports: Airport[] = [
-  { code: 'JFK', name: 'John F. Kennedy Intl', lat: 40.6413, lng: -73.7781 },
-  { code: 'LAX', name: 'Los Angeles Intl', lat: 33.9425, lng: -118.4081 },
-  { code: 'ORD', name: "O'Hare Intl", lat: 41.9742, lng: -87.9073 },
-  { code: 'ATL', name: 'Hartsfield-Jackson Atlanta Intl', lat: 33.6407, lng: -84.4277 },
-  { code: 'DFW', name: 'Dallas/Fort Worth Intl', lat: 32.8998, lng: -97.0403 },
-  { code: 'DEN', name: 'Denver Intl', lat: 39.8561, lng: -104.6737 },
-  { code: 'SFO', name: 'San Francisco Intl', lat: 37.6213, lng: -122.379 },
-  { code: 'SEA', name: 'Seattle-Tacoma Intl', lat: 47.4502, lng: -122.3088 },
-  { code: 'MIA', name: 'Miami Intl', lat: 25.7959, lng: -80.287 },
-  { code: 'BOS', name: 'Boston Logan Intl', lat: 42.3656, lng: -71.0096 },
-]
+const airports = computed(() => airportStore.airportList)
 
-const routes: [string, string][] = [
-  ['JFK', 'LAX'],
-  ['JFK', 'ORD'],
-  ['ATL', 'DFW'],
-  ['SFO', 'SEA'],
-  ['MIA', 'ATL'],
-  ['DEN', 'ORD'],
-  ['BOS', 'JFK'],
-  ['LAX', 'DFW'],
-]
+const flyingRoutes = computed(() =>
+  flightStore.currentlyFlying.map((f) => {
+    const dep = airportStore.getByCode(f.departureAirportCode)
+    const arr = airportStore.getByCode(f.arrivalAirportCode)
+    if (!dep || !arr) return null
+    const progress =
+      (gameStore.totalMinutes - f.departureTime) / (f.arrivalTime - f.departureTime)
+    const pos = interpolatePosition(
+      { lat: dep.lat, lng: dep.lng },
+      { lat: arr.lat, lng: arr.lng },
+      progress,
+    )
+    return {
+      id: f.id,
+      latLngs: [
+        [dep.lat, dep.lng],
+        [arr.lat, arr.lng],
+      ] as [number, number][],
+      planePos: [pos.lat, pos.lng] as [number, number],
+      flightNumber: f.flightNumber,
+    }
+  }).filter(Boolean),
+)
 
-function getAirport(code: string) {
-  return airports.find((a) => a.code === code)!
-}
+const scheduledRoutes = computed(() =>
+  flightStore.scheduledFlights.map((f) => {
+    const dep = airportStore.getByCode(f.departureAirportCode)
+    const arr = airportStore.getByCode(f.arrivalAirportCode)
+    if (!dep || !arr) return null
+    return {
+      id: f.id,
+      latLngs: [
+        [dep.lat, dep.lng],
+        [arr.lat, arr.lng],
+      ] as [number, number][],
+    }
+  }).filter(Boolean),
+)
 
-function getRouteLatLngs(from: string, to: string): [number, number][] {
-  const a = getAirport(from)
-  const b = getAirport(to)
-  return [
-    [a.lat, a.lng],
-    [b.lat, b.lng],
-  ]
+function navigateToAirport(code: string) {
+  router.push(`/airports/${code}`)
 }
 </script>
 
@@ -56,22 +68,47 @@ function getRouteLatLngs(from: string, to: string): [number, number][] {
         layer-type="base"
         name="WorldShadedRelief"
       />
-      <LMarker v-for="airport in airports" :key="airport.code" :lat-lng="[airport.lat, airport.lng]">
+      <LMarker
+        v-for="airport in airports"
+        :key="airport.code"
+        :lat-lng="[airport.lat, airport.lng]"
+        @click="navigateToAirport(airport.code)"
+      >
         <LPopup>
-          <strong>{{ airport.code }}</strong
-          ><br />
+          <strong>{{ airport.code }}</strong><br />
           {{ airport.name }}
         </LPopup>
       </LMarker>
+
+      <!-- Scheduled flight routes (dashed red) -->
       <LPolyline
-        v-for="([from, to], i) in routes"
-        :key="i"
-        :lat-lngs="getRouteLatLngs(from, to)"
+        v-for="route in scheduledRoutes"
+        :key="'s-' + route!.id"
+        :lat-lngs="route!.latLngs"
         color="#e74c3c"
         :weight="2"
-        :opacity="0.7"
+        :opacity="0.5"
         dash-array="6 4"
       />
+
+      <!-- Active flight routes (solid blue) -->
+      <LPolyline
+        v-for="route in flyingRoutes"
+        :key="'f-' + route!.id"
+        :lat-lngs="route!.latLngs"
+        color="#3498db"
+        :weight="2.5"
+        :opacity="0.8"
+      />
+
+      <!-- Plane position markers -->
+      <LMarker
+        v-for="route in flyingRoutes"
+        :key="'p-' + route!.id"
+        :lat-lng="route!.planePos"
+      >
+        <LPopup>{{ route!.flightNumber }}</LPopup>
+      </LMarker>
     </LMap>
   </div>
 </template>
@@ -79,6 +116,6 @@ function getRouteLatLngs(from: string, to: string): [number, number][] {
 <style scoped>
 .map-container {
   width: 100%;
-  height: calc(100vh - 80px);
+  height: calc(100vh - var(--gamebar-height) - 3rem);
 }
 </style>
