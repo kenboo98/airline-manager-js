@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAirportStore } from '@/stores/airportStore'
 import { usePlaneStore } from '@/stores/planeStore'
 import { useFlightStore } from '@/stores/flightStore'
@@ -10,19 +10,25 @@ import { formatCurrency, formatDuration } from '@/utils/format'
 import { computeFairPrice } from '@/utils/pricing'
 
 const router = useRouter()
+const route = useRoute()
 const airportStore = useAirportStore()
 const planeStore = usePlaneStore()
 const flightStore = useFlightStore()
 const gameStore = useGameStore()
 const passengerStore = usePassengerStore()
 
-const departureCode = ref('')
+const fromQuery = typeof route.query.from === 'string' ? route.query.from : ''
+const planeQuery = typeof route.query.plane === 'string' ? route.query.plane : ''
+const departureLocked = !!fromQuery
+const planeLocked = !!planeQuery
+
+const departureCode = ref(fromQuery)
 const arrivalCode = ref('')
-const planeId = ref('')
+const planeId = ref(planeQuery)
 const flightNumber = ref('')
-const departureDay = ref(1)
-const departureHour = ref(8)
-const departureMinute = ref(0)
+const departureDay = ref(gameStore.time.day)
+const departureHour = ref(gameStore.time.hour)
+const departureMinute = ref(Math.min(gameStore.time.minute + 5, 59))
 const economyPrice = ref(0)
 const businessPrice = ref(0)
 const firstClassPrice = ref(0)
@@ -37,8 +43,20 @@ const filteredDepAirports = computed(() => {
 })
 
 const filteredArrAirports = computed(() => {
-  if (!arrSearch.value) return airportStore.airportList
-  return airportStore.searchAirports(arrSearch.value)
+  let list = arrSearch.value ? airportStore.searchAirports(arrSearch.value) : airportStore.airportList
+  if (departureCode.value && selectedModel.value) {
+    const depAirport = airportStore.getByCode(departureCode.value)
+    if (depAirport) {
+      list = list.filter((ap) => {
+        if (ap.code === departureCode.value) return false
+        const dist = airportStore.getDistanceNm(departureCode.value, ap.code)
+        if (dist > selectedModel.value!.range) return false
+        if (selectedModel.value!.minRunwayLength > ap.runwayLength) return false
+        return true
+      })
+    }
+  }
+  return list
 })
 
 const distance = computed(() => {
@@ -188,12 +206,17 @@ function submit() {
 
         <div class="form-group">
           <label>Departure Airport</label>
-          <input v-model="depSearch" class="input" placeholder="Search..." />
-          <select v-model="departureCode" class="input" size="5">
-            <option v-for="ap in filteredDepAirports" :key="ap.code" :value="ap.code">
-              {{ ap.code }} — {{ ap.city }}
-            </option>
-          </select>
+          <template v-if="departureLocked">
+            <input class="input" :value="`${departureCode} — ${airportStore.getByCode(departureCode)?.city ?? ''}`" disabled />
+          </template>
+          <template v-else>
+            <input v-model="depSearch" class="input" placeholder="Search..." />
+            <select v-model="departureCode" class="input" size="5">
+              <option v-for="ap in filteredDepAirports" :key="ap.code" :value="ap.code">
+                {{ ap.code }} — {{ ap.city }}
+              </option>
+            </select>
+          </template>
         </div>
 
         <div class="form-group">
@@ -216,16 +239,21 @@ function submit() {
 
         <div class="form-group">
           <label>Select Plane</label>
-          <select v-model="planeId" class="input">
-            <option value="" disabled>Select a plane</option>
-            <option v-for="p in eligiblePlanes" :key="p.id" :value="p.id">
-              {{ p.registration }} ({{ planeStore.getModel(p.modelId)?.manufacturer }}
-              {{ planeStore.getModel(p.modelId)?.name }}) @ {{ p.currentAirportCode }}
-            </option>
-          </select>
-          <p v-if="departureCode && arrivalCode && !eligiblePlanes.length" class="hint">
-            No planes available for this route. Check range and runway requirements.
-          </p>
+          <template v-if="planeLocked && selectedPlane">
+            <input class="input" :value="`${selectedPlane.registration} (${selectedModel?.manufacturer} ${selectedModel?.name})`" disabled />
+          </template>
+          <template v-else>
+            <select v-model="planeId" class="input">
+              <option value="" disabled>Select a plane</option>
+              <option v-for="p in eligiblePlanes" :key="p.id" :value="p.id">
+                {{ p.registration }} ({{ planeStore.getModel(p.modelId)?.manufacturer }}
+                {{ planeStore.getModel(p.modelId)?.name }}) @ {{ p.currentAirportCode }}
+              </option>
+            </select>
+            <p v-if="departureCode && arrivalCode && !eligiblePlanes.length" class="hint">
+              No planes available for this route. Check range and runway requirements.
+            </p>
+          </template>
         </div>
 
         <div class="form-group">

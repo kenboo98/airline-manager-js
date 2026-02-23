@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import 'leaflet/dist/leaflet.css'
 import { LMap, LTileLayer, LMarker, LPopup, LPolyline, LIcon } from '@vue-leaflet/vue-leaflet'
@@ -8,11 +8,30 @@ import { useFlightStore } from '@/stores/flightStore'
 import { useGameStore } from '@/stores/gameStore'
 import { interpolatePosition } from '@/utils/geo'
 import planeIconSvg from '@/assets/plane_icon.svg'
+import AirportInfoPanel from '@/components/map/AirportInfoPanel.vue'
 
 const router = useRouter()
 const airportStore = useAirportStore()
 const flightStore = useFlightStore()
 const gameStore = useGameStore()
+
+const selectedAirportCode = ref<string | null>(null)
+
+function onAirportClick(code: string) {
+  selectedAirportCode.value = code
+}
+
+function onSelectPlane(planeId: string) {
+  router.push(`/flights/new?from=${selectedAirportCode.value}&plane=${planeId}`)
+}
+
+function onViewDetail() {
+  router.push(`/airports/${selectedAirportCode.value}`)
+}
+
+function onClosePanel() {
+  selectedAirportCode.value = null
+}
 
 const airports = computed(() => airportStore.airportList)
 
@@ -71,9 +90,6 @@ const scheduledRoutes = computed(() =>
   }).filter(Boolean),
 )
 
-function navigateToAirport(code: string) {
-  router.push(`/airports/${code}`)
-}
 </script>
 
 <template>
@@ -89,7 +105,7 @@ function navigateToAirport(code: string) {
         v-for="airport in airports"
         :key="airport.code"
         :lat-lng="[airport.lat, airport.lng]"
-        @click="navigateToAirport(airport.code)"
+        @click="onAirportClick(airport.code)"
       >
         <LPopup>
           <strong>{{ airport.code }}</strong><br />
@@ -134,11 +150,20 @@ function navigateToAirport(code: string) {
         <LPopup>{{ route!.flightNumber }}</LPopup>
       </LMarker>
     </LMap>
+
+    <AirportInfoPanel
+      v-if="selectedAirportCode"
+      :airport-code="selectedAirportCode"
+      @close="onClosePanel"
+      @select-plane="onSelectPlane"
+      @view-detail="onViewDetail"
+    />
   </div>
 </template>
 
 <style scoped>
 .map-container {
+  position: relative;
   width: 100%;
   height: calc(100vh - var(--gamebar-height) - 3rem);
 }
