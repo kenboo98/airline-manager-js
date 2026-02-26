@@ -36,7 +36,7 @@ function getRegistration(planeId: string) {
     <h1>Active Flights</h1>
 
     <p v-if="!flights.length" class="empty">
-      No active flights. <RouterLink to="/flights/new">Create one!</RouterLink>
+      No active flights. <RouterLink to="/map">Create one on the map!</RouterLink>
     </p>
 
     <div v-else class="flights-list">

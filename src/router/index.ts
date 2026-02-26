@@ -35,12 +35,7 @@ const router = createRouter({
       name: 'fleet',
       component: () => import('../views/FleetView.vue'),
     },
-    {
-      path: '/flights/new',
-      name: 'create-flight',
-      component: () => import('../views/CreateFlightView.vue'),
-    },
-    {
+{
       path: '/flights/active',
       name: 'active-flights',
       component: () => import('../views/ActiveFlightsView.vue'),

@@ -37,7 +37,7 @@ const flightStore = useFlightStore()
       <h2>Quick Actions</h2>
       <div class="link-grid">
         <RouterLink to="/planes/buy" class="action-link card">Buy Planes</RouterLink>
-        <RouterLink to="/flights/new" class="action-link card">Create Flight</RouterLink>
+        <RouterLink to="/map" class="action-link card">Create Flight</RouterLink>
         <RouterLink to="/map" class="action-link card">View Map</RouterLink>
         <RouterLink to="/company" class="action-link card">Company Settings</RouterLink>
       </div>
