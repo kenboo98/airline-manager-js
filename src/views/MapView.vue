@@ -141,6 +141,16 @@ const flyingRoutes = computed(() =>
     .filter(Boolean),
 )
 
+const airportsWithPlanes = computed(() => {
+  const codes = new Set<string>()
+  for (const plane of planeStore.fleetList) {
+    if (plane.status !== 'in-flight') {
+      codes.add(plane.currentAirportCode)
+    }
+  }
+  return codes
+})
+
 const scheduledRoutes = computed(() =>
   flightStore.scheduledFlights
     .map((f) => {
@@ -179,6 +189,20 @@ const scheduledRoutes = computed(() =>
           ><br />
           {{ airport.name }}
         </LPopup>
+      </LMarker>
+
+      <!-- Small plane icon at airports with stationed planes -->
+      <LMarker
+        v-for="airport in airports.filter((a) => airportsWithPlanes.has(a.code))"
+        :key="'stationed-' + airport.code"
+        :lat-lng="[airport.lat, airport.lng]"
+      >
+        <LIcon
+          :icon-url="planeIconSvg"
+          :icon-size="[14, 14]"
+          :icon-anchor="[-2, 24]"
+          class-name="stationed-plane-icon"
+        />
       </LMarker>
 
       <!-- Range circle in flight creation mode -->
@@ -283,9 +307,14 @@ const scheduledRoutes = computed(() =>
 </style>
 
 <style>
-.plane-icon {
+.plane-icon,
+.stationed-plane-icon {
   background: none !important;
   border: none !important;
+}
+
+.stationed-plane-icon {
+  pointer-events: none !important;
 }
 
 .plane-icon img {
