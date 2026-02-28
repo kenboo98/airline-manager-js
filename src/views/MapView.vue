@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import 'leaflet/dist/leaflet.css'
+import { divIcon } from 'leaflet'
+import type L from 'leaflet'
 import {
   LMap,
   LTileLayer,
@@ -110,8 +112,17 @@ function bearing(lat1: number, lng1: number, lat2: number, lng2: number): number
   return (toDeg(Math.atan2(y, x)) + 360) % 360
 }
 
-// The SVG asset points upper-left (~315°); offset so 0° bearing = north
-const SVG_BASE_ANGLE = 315
+// The SVG asset points upper-right (~45°); offset so 0° bearing = north
+const SVG_BASE_ANGLE = 60
+
+function createPlaneIcon(rotation: number) {
+  return divIcon({
+    html: `<img src="${planeIconSvg}" width="28" height="28" style="transform: rotate(${rotation}deg);">`,
+    iconSize: [28, 28] as [number, number],
+    iconAnchor: [14, 14] as [number, number],
+    className: 'plane-icon',
+  })
+}
 
 const flyingRoutes = computed(() =>
   flightStore.currentlyFlying
@@ -135,7 +146,7 @@ const flyingRoutes = computed(() =>
         ] as [number, number][],
         planePos: [pos.lat, pos.lng] as [number, number],
         flightNumber: f.flightNumber,
-        rotation: angle - SVG_BASE_ANGLE,
+        icon: createPlaneIcon(angle + SVG_BASE_ANGLE) as unknown as L.Icon,
       }
     })
     .filter(Boolean),
@@ -241,14 +252,8 @@ const scheduledRoutes = computed(() =>
         v-for="route in flyingRoutes"
         :key="'p-' + route!.id"
         :lat-lng="route!.planePos"
+        :icon="route!.icon"
       >
-        <LIcon
-          :icon-url="planeIconSvg"
-          :icon-size="[28, 28]"
-          :icon-anchor="[14, 14]"
-          class-name="plane-icon"
-          :style="`--plane-rotation: ${route!.rotation}deg`"
-        />
         <LPopup>{{ route!.flightNumber }}</LPopup>
       </LMarker>
     </LMap>
@@ -317,7 +322,4 @@ const scheduledRoutes = computed(() =>
   pointer-events: none !important;
 }
 
-.plane-icon img {
-  transform: rotate(var(--plane-rotation, 0deg));
-}
 </style>
