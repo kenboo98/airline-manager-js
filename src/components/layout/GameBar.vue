@@ -60,7 +60,9 @@ function setSpeed(s: GameSpeed) {
     </div>
 
     <div class="gamebar-section stats">
-      <span class="stat">{{ formatCurrency(companyStore.company.cash) }}</span>
+      <span class="stat"><span class="stat-label">Revenue:</span> <span class="revenue" :class="{ negative: companyStore.revenueToday < 0 }">{{ formatCurrency(companyStore.revenueToday) }}</span></span>
+      <span class="stat"><span class="stat-label">Profit:</span> <span class="profit" :class="{ negative: companyStore.profitToday < 0 }">{{ companyStore.profitToday >= 0 ? '+' : '' }}{{ formatCurrency(companyStore.profitToday) }}</span></span>
+      <span class="stat"><span class="stat-label">Cash:</span> {{ formatCurrency(companyStore.company.cash) }}</span>
       <span class="stat">{{ planeStore.fleetList.length }} planes</span>
     </div>
   </div>
@@ -129,5 +131,23 @@ function setSpeed(s: GameSpeed) {
 
 .stat {
   font-weight: 500;
+}
+
+.revenue {
+  color: #3b82f6;
+}
+
+.profit {
+  color: #22c55e;
+}
+
+.negative {
+  color: #ef4444;
+}
+
+.stat-label {
+  color: var(--color-text);
+  opacity: 0.7;
+  font-size: 0.75rem;
 }
 </style>

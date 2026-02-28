@@ -14,11 +14,13 @@ export const useCompanyStore = defineStore('company', () => {
     foundedDate: 0,
   })
 
-  let dailyRevenue = 0
-  let dailyExpenses = 0
+  const dailyRevenue = ref(0)
+  const dailyExpenses = ref(0)
   let lastSnapshotDay = -1
 
-  const profitToday = computed(() => dailyRevenue - dailyExpenses)
+  const revenueToday = computed(() => dailyRevenue.value)
+  const expensesToday = computed(() => dailyExpenses.value)
+  const profitToday = computed(() => dailyRevenue.value - dailyExpenses.value)
   const netWorth = computed(() => company.value.cash)
 
   function setName(name: string) {
@@ -28,19 +30,19 @@ export const useCompanyStore = defineStore('company', () => {
   function deductCash(amount: number) {
     company.value.cash -= amount
     company.value.totalExpenses += amount
-    dailyExpenses += amount
+    dailyExpenses.value += amount
   }
 
   function addRevenue(amount: number) {
     company.value.cash += amount
     company.value.totalRevenue += amount
-    dailyRevenue += amount
+    dailyRevenue.value += amount
   }
 
   function addExpense(amount: number) {
     company.value.cash -= amount
     company.value.totalExpenses += amount
-    dailyExpenses += amount
+    dailyExpenses.value += amount
   }
 
   function processTick(totalMinutes: number) {
@@ -52,22 +54,24 @@ export const useCompanyStore = defineStore('company', () => {
     if (currentDay > lastSnapshotDay) {
       const record: FinancialRecord = {
         date: lastSnapshotDay,
-        revenue: dailyRevenue,
-        expenses: dailyExpenses,
-        profit: dailyRevenue - dailyExpenses,
+        revenue: dailyRevenue.value,
+        expenses: dailyExpenses.value,
+        profit: dailyRevenue.value - dailyExpenses.value,
       }
       company.value.financialHistory.push(record)
       if (company.value.financialHistory.length > 30) {
         company.value.financialHistory.shift()
       }
-      dailyRevenue = 0
-      dailyExpenses = 0
+      dailyRevenue.value = 0
+      dailyExpenses.value = 0
       lastSnapshotDay = currentDay
     }
   }
 
   return {
     company,
+    revenueToday,
+    expensesToday,
     profitToday,
     netWorth,
     setName,
