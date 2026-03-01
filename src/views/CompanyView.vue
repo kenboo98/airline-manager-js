@@ -13,10 +13,7 @@ function saveName() {
 function maxBarValue() {
   const history = companyStore.company.financialHistory
   if (!history.length) return 1
-  return Math.max(
-    ...history.map((r) => Math.max(r.revenue, r.expenses)),
-    1,
-  )
+  return Math.max(...history.map((r) => Math.max(r.revenue, r.expenses)), 1)
 }
 </script>
 
@@ -41,18 +38,29 @@ function maxBarValue() {
         </div>
         <div class="card">
           <div class="card-label">Total Revenue</div>
-          <div class="card-value revenue">{{ formatCurrency(companyStore.company.totalRevenue) }}</div>
+          <div class="card-value revenue">
+            {{ formatCurrency(companyStore.company.totalRevenue) }}
+          </div>
         </div>
         <div class="card">
           <div class="card-label">Total Expenses</div>
-          <div class="card-value expenses">{{ formatCurrency(companyStore.company.totalExpenses) }}</div>
+          <div class="card-value expenses">
+            {{ formatCurrency(companyStore.company.totalExpenses) }}
+          </div>
         </div>
         <div class="card">
           <div class="card-label">Net Profit</div>
           <div
-            :class="['card-value', companyStore.company.totalRevenue - companyStore.company.totalExpenses >= 0 ? 'revenue' : 'expenses']"
+            :class="[
+              'card-value',
+              companyStore.company.totalRevenue - companyStore.company.totalExpenses >= 0
+                ? 'revenue'
+                : 'expenses',
+            ]"
           >
-            {{ formatCurrency(companyStore.company.totalRevenue - companyStore.company.totalExpenses) }}
+            {{
+              formatCurrency(companyStore.company.totalRevenue - companyStore.company.totalExpenses)
+            }}
           </div>
         </div>
       </div>

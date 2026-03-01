@@ -121,9 +121,7 @@ onUnmounted(() => {
   >
     <div class="toast__icon">{{ typeIcon }}</div>
     <div class="toast__content">{{ message }}</div>
-    <button class="toast__close" @click="dismiss" aria-label="Dismiss notification">
-      ×
-    </button>
+    <button class="toast__close" @click="dismiss" aria-label="Dismiss notification">×</button>
     <div class="toast__progress">
       <div class="toast__progress-bar" :style="{ width: `${progress}%` }"></div>
     </div>

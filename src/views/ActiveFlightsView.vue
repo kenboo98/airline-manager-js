@@ -64,7 +64,11 @@ function getTotalSeats(planeId: string) {
           <span>Plane: {{ getRegistration(flight.planeId) }}</span>
           <span>Distance: {{ Math.round(flight.distanceNm).toLocaleString() }} nm</span>
           <span>
-            Passengers: {{ flight.passengers.economy + flight.passengers.business + flight.passengers.firstClass }} / {{ getTotalSeats(flight.planeId) }}
+            Passengers:
+            {{
+              flight.passengers.economy + flight.passengers.business + flight.passengers.firstClass
+            }}
+            / {{ getTotalSeats(flight.planeId) }}
           </span>
         </div>
 
@@ -83,11 +87,16 @@ function getTotalSeats(planeId: string) {
 
         <div class="flight-financials">
           <span>Cost: {{ formatCurrency(flight.cost) }}</span>
-          <span>Est. Revenue: {{ formatCurrency(
-            flight.passengers.economy * flight.ticketPricing.economy +
-            flight.passengers.business * flight.ticketPricing.business +
-            flight.passengers.firstClass * flight.ticketPricing.firstClass
-          ) }}</span>
+          <span
+            >Est. Revenue:
+            {{
+              formatCurrency(
+                flight.passengers.economy * flight.ticketPricing.economy +
+                  flight.passengers.business * flight.ticketPricing.business +
+                  flight.passengers.firstClass * flight.ticketPricing.firstClass,
+              )
+            }}</span
+          >
         </div>
 
         <button

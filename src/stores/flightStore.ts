@@ -19,17 +19,11 @@ export const useFlightStore = defineStore('flight', () => {
     flightList.value.filter((f) => f.status === 'scheduled' || f.status === 'in-flight'),
   )
 
-  const scheduledFlights = computed(() =>
-    flightList.value.filter((f) => f.status === 'scheduled'),
-  )
+  const scheduledFlights = computed(() => flightList.value.filter((f) => f.status === 'scheduled'))
 
-  const currentlyFlying = computed(() =>
-    flightList.value.filter((f) => f.status === 'in-flight'),
-  )
+  const currentlyFlying = computed(() => flightList.value.filter((f) => f.status === 'in-flight'))
 
-  const completedFlights = computed(() =>
-    flightList.value.filter((f) => f.status === 'arrived'),
-  )
+  const completedFlights = computed(() => flightList.value.filter((f) => f.status === 'arrived'))
 
   function createFlight(params: {
     flightNumber: string

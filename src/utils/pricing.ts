@@ -1,4 +1,7 @@
-export function computeFairPrice(distanceNm: number, seatClass: 'economy' | 'business' | 'firstClass'): number {
+export function computeFairPrice(
+  distanceNm: number,
+  seatClass: 'economy' | 'business' | 'firstClass',
+): number {
   const basePerNm: Record<string, number> = {
     economy: 0.12,
     business: 0.35,

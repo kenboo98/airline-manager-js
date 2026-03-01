@@ -87,8 +87,7 @@ function closeStats() {
           <div class="stat-row">
             <span class="stat-label">Seats</span>
             <span>
-              {{ selectedModel.defaultSeats.economy }}E
-              / {{ selectedModel.defaultSeats.business }}B
+              {{ selectedModel.defaultSeats.economy }}E / {{ selectedModel.defaultSeats.business }}B
               <template v-if="selectedModel.defaultSeats.firstClass">
                 / {{ selectedModel.defaultSeats.firstClass }}F
               </template>

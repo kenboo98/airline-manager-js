@@ -27,7 +27,9 @@ const filteredAirports = computed(() => {
   return list
 })
 
-function totalDemand(airport: { demand: { business: number; leisure: number; firstClass: number } }) {
+function totalDemand(airport: {
+  demand: { business: number; leisure: number; firstClass: number }
+}) {
   return airport.demand.business + airport.demand.leisure + airport.demand.firstClass
 }
 </script>
@@ -37,11 +39,7 @@ function totalDemand(airport: { demand: { business: number; leisure: number; fir
     <h1>Airports</h1>
 
     <div class="controls">
-      <input
-        v-model="searchQuery"
-        class="input search-input"
-        placeholder="Search airports..."
-      />
+      <input v-model="searchQuery" class="input search-input" placeholder="Search airports..." />
       <select v-model="sortBy" class="input sort-select">
         <option value="demand">Sort by Demand</option>
         <option value="code">Sort by Code</option>

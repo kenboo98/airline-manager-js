@@ -32,9 +32,7 @@ const arrAirport = computed(() => airportStore.getByCode(props.arrivalCode))
 const plane = computed(() => planeStore.getPlane(props.planeId))
 const model = computed(() => (plane.value ? planeStore.getModel(plane.value.modelId) : undefined))
 
-const distance = computed(() =>
-  airportStore.getDistanceNm(props.departureCode, props.arrivalCode),
-)
+const distance = computed(() => airportStore.getDistanceNm(props.departureCode, props.arrivalCode))
 
 const duration = computed(() => {
   if (!model.value) return 0
@@ -160,12 +158,7 @@ function confirm() {
           </div>
           <div v-if="plane && plane.seats.business > 0" class="pricing-row">
             <label>Business</label>
-            <input
-              v-model.number="businessPrice"
-              type="number"
-              class="input price-input"
-              min="0"
-            />
+            <input v-model.number="businessPrice" type="number" class="input price-input" min="0" />
           </div>
           <div v-if="plane && plane.seats.firstClass > 0" class="pricing-row">
             <label>First Class</label>
@@ -184,9 +177,16 @@ function confirm() {
           <div class="detail-row">
             <span>Passengers</span>
             <span>
-              <template v-if="plane && plane.seats.economy > 0">{{ demandPreview.economy }}E</template>
-              <template v-if="plane && plane.seats.business > 0">{{ plane.seats.economy > 0 ? ' / ' : '' }}{{ demandPreview.business }}B</template>
-              <template v-if="plane && plane.seats.firstClass > 0">{{ (plane.seats.economy > 0 || plane.seats.business > 0) ? ' / ' : '' }}{{ demandPreview.firstClass }}F</template>
+              <template v-if="plane && plane.seats.economy > 0"
+                >{{ demandPreview.economy }}E</template
+              >
+              <template v-if="plane && plane.seats.business > 0"
+                >{{ plane.seats.economy > 0 ? ' / ' : '' }}{{ demandPreview.business }}B</template
+              >
+              <template v-if="plane && plane.seats.firstClass > 0"
+                >{{ plane.seats.economy > 0 || plane.seats.business > 0 ? ' / ' : ''
+                }}{{ demandPreview.firstClass }}F</template
+              >
             </span>
           </div>
           <div class="detail-row">

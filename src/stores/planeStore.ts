@@ -11,14 +11,10 @@ export const usePlaneStore = defineStore('plane', () => {
 
   const fleetList = computed(() => Array.from(fleet.value.values()))
 
-  const availablePlanes = computed(() =>
-    fleetList.value.filter((p) => p.status === 'available'),
-  )
+  const availablePlanes = computed(() => fleetList.value.filter((p) => p.status === 'available'))
 
   function planesAtAirport(code: string): OwnedPlane[] {
-    return fleetList.value.filter(
-      (p) => p.currentAirportCode === code && p.status === 'available',
-    )
+    return fleetList.value.filter((p) => p.currentAirportCode === code && p.status === 'available')
   }
 
   function getModel(id: string): PlaneModel | undefined {

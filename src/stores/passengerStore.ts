@@ -1,107 +1,130 @@
 import { defineStore } from 'pinia'
+import type { Passenger, PassengerType } from '@/types'
 import { useAirportStore } from './airportStore'
 import { useFlightStore } from './flightStore'
 import { usePlaneStore } from './planeStore'
-import { computeFairPrice, computeBookingRate } from '@/utils/pricing'
 
 export const usePassengerStore = defineStore('passenger', () => {
+  // Map passenger type to seat class
+  function getSeatClass(type: PassengerType): 'economy' | 'business' | 'firstClass' {
+    switch (type) {
+      case 'leisure':
+        return 'economy'
+      case 'business':
+        return 'business'
+      case 'ultraWealthy':
+        return 'firstClass'
+    }
+  }
+
+  // Check if a passenger will buy a ticket based on price
+  function willBuyTicket(passenger: Passenger, ticketPrice: number): boolean {
+    return ticketPrice <= passenger.maxPrice
+  }
+
+  // Compute demand preview for flight creation (how many passengers want to go there)
   function computeDemand(
     fromCode: string,
     toCode: string,
     pricing: { economy: number; business: number; firstClass: number },
   ) {
     const airportStore = useAirportStore()
-    const from = airportStore.getByCode(fromCode)
-    const to = airportStore.getByCode(toCode)
-    if (!from || !to) return { economy: 0, business: 0, firstClass: 0 }
+    const passengers = airportStore.getPassengers(fromCode)
 
-    const distance = airportStore.getDistanceNm(fromCode, toCode)
-    const avgDemand = {
-      business: Math.floor((from.demand.business + to.demand.business) / 2),
-      leisure: Math.floor((from.demand.leisure + to.demand.leisure) / 2),
-      firstClass: Math.floor((from.demand.firstClass + to.demand.firstClass) / 2),
+    let economy = 0
+    let business = 0
+    let firstClass = 0
+
+    for (const p of passengers) {
+      if (p.destinationCode !== toCode) continue
+
+      const seatClass = getSeatClass(p.type)
+      const price = pricing[seatClass]
+
+      if (willBuyTicket(p, price)) {
+        if (seatClass === 'economy') economy++
+        else if (seatClass === 'business') business++
+        else if (seatClass === 'firstClass') firstClass++
+      }
     }
 
-    const fairEconomy = computeFairPrice(distance, 'economy')
-    const fairBusiness = computeFairPrice(distance, 'business')
-    const fairFirst = computeFairPrice(distance, 'firstClass')
-
-    const economyRate = computeBookingRate(pricing.economy, fairEconomy, 5, avgDemand.leisure)
-    const businessRate = computeBookingRate(pricing.business, fairBusiness, 5, avgDemand.business)
-    const firstClassRate = computeBookingRate(pricing.firstClass, fairFirst, 5, avgDemand.firstClass)
-
-    return { economy: economyRate, business: businessRate, firstClass: firstClassRate }
+    return { economy, business, firstClass }
   }
 
+  // Process bookings for all scheduled flights
   function processTick(totalMinutes: number) {
     const flightStore = useFlightStore()
     const planeStore = usePlaneStore()
     const airportStore = useAirportStore()
 
+    // First, generate new passengers at airports
+    airportStore.processTick(totalMinutes)
+
+    // Then, book passengers onto scheduled flights
     for (const flight of flightStore.flights.values()) {
       if (flight.status !== 'scheduled') continue
 
       const plane = planeStore.getPlane(flight.planeId)
       if (!plane) continue
-      const model = planeStore.getModel(plane.modelId)
-      if (!model) continue
 
-      const daysUntilDeparture = Math.max(0, (flight.departureTime - totalMinutes) / 1440)
-      const distance = airportStore.getDistanceNm(
-        flight.departureAirportCode,
-        flight.arrivalAirportCode,
+      const waitingPassengers = airportStore.getPassengers(flight.departureAirportCode)
+
+      // Find passengers who want to go to this destination and can afford the ticket
+      const eligiblePassengers = waitingPassengers.filter(
+        (p) =>
+          p.destinationCode === flight.arrivalAirportCode &&
+          willBuyTicket(p, flight.ticketPricing[getSeatClass(p.type)]),
       )
 
-      const from = airportStore.getByCode(flight.departureAirportCode)
-      const to = airportStore.getByCode(flight.arrivalAirportCode)
-      if (!from || !to) continue
-
-      const avgDemand = {
-        leisure: Math.floor((from.demand.leisure + to.demand.leisure) / 2),
-        business: Math.floor((from.demand.business + to.demand.business) / 2),
-        firstClass: Math.floor((from.demand.firstClass + to.demand.firstClass) / 2),
+      // Group by seat class needed
+      const byClass: Record<PassengerType, Passenger[]> = {
+        leisure: [],
+        business: [],
+        ultraWealthy: [],
       }
 
-      const fairEconomy = computeFairPrice(distance, 'economy')
-      const fairBusiness = computeFairPrice(distance, 'business')
-      const fairFirst = computeFairPrice(distance, 'firstClass')
+      for (const p of eligiblePassengers) {
+        byClass[p.type].push(p)
+      }
 
-      const eRate = computeBookingRate(
-        flight.ticketPricing.economy,
-        fairEconomy,
-        daysUntilDeparture,
-        avgDemand.leisure,
-      )
-      const bRate = computeBookingRate(
-        flight.ticketPricing.business,
-        fairBusiness,
-        daysUntilDeparture,
-        avgDemand.business,
-      )
-      const fRate = computeBookingRate(
-        flight.ticketPricing.firstClass,
-        fairFirst,
-        daysUntilDeparture,
-        avgDemand.firstClass,
-      )
+      // Book passengers into available seats (FIFO - first come, first served)
+      const bookedPassengerIds: string[] = []
 
-      flight.passengers.economy = Math.min(
-        flight.passengers.economy + eRate,
-        plane.seats.economy,
-      )
-      flight.passengers.business = Math.min(
-        flight.passengers.business + bRate,
-        plane.seats.business,
-      )
-      flight.passengers.firstClass = Math.min(
-        flight.passengers.firstClass + fRate,
-        plane.seats.firstClass,
-      )
+      // Economy seats for leisure passengers
+      const economyAvailable = plane.seats.economy - flight.passengers.economy
+      const economyToBook = Math.min(economyAvailable, byClass.leisure.length)
+      for (let i = 0; i < economyToBook; i++) {
+        bookedPassengerIds.push(byClass.leisure[i].id)
+      }
+      flight.passengers.economy += economyToBook
+
+      // Business seats for business passengers
+      const businessAvailable = plane.seats.business - flight.passengers.business
+      const businessToBook = Math.min(businessAvailable, byClass.business.length)
+      for (let i = 0; i < businessToBook; i++) {
+        bookedPassengerIds.push(byClass.business[i].id)
+      }
+      flight.passengers.business += businessToBook
+
+      // First class seats for ultra wealthy passengers
+      const firstClassAvailable = plane.seats.firstClass - flight.passengers.firstClass
+      const firstClassToBook = Math.min(firstClassAvailable, byClass.ultraWealthy.length)
+      for (let i = 0; i < firstClassToBook; i++) {
+        bookedPassengerIds.push(byClass.ultraWealthy[i].id)
+      }
+      flight.passengers.firstClass += firstClassToBook
+
+      // Remove booked passengers from the airport
+      if (bookedPassengerIds.length > 0) {
+        airportStore.removePassengers(flight.departureAirportCode, bookedPassengerIds)
+      }
     }
   }
 
   return {
     computeDemand,
     processTick,
+    getSeatClass,
+    willBuyTicket,
   }
 })

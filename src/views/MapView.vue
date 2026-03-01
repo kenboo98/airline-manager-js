@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import 'leaflet/dist/leaflet.css'
 import { divIcon } from 'leaflet'
 import type L from 'leaflet'
@@ -22,7 +21,6 @@ import planeIconSvg from '@/assets/plane_icon.svg'
 import AirportInfoPanel from '@/components/map/AirportInfoPanel.vue'
 import FlightConfirmModal from '@/components/map/FlightConfirmModal.vue'
 
-const router = useRouter()
 const airportStore = useAirportStore()
 const planeStore = usePlaneStore()
 const flightStore = useFlightStore()
@@ -75,10 +73,6 @@ function onModalConfirm() {
 
 function onModalCancel() {
   destinationCode.value = null
-}
-
-function onViewDetail() {
-  router.push(`/airports/${selectedAirportCode.value}`)
 }
 
 function onClosePanel() {
@@ -263,7 +257,8 @@ const scheduledRoutes = computed(() =>
       >
         <LPopup>
           <div>
-            <strong>{{ route!.flightNumber }}</strong><br />
+            <strong>{{ route!.flightNumber }}</strong
+            ><br />
             Passengers: {{ route!.passengers }} / {{ route!.totalSeats }}
           </div>
         </LPopup>
@@ -276,7 +271,6 @@ const scheduledRoutes = computed(() =>
       :airport-code="selectedAirportCode"
       @close="onClosePanel"
       @select-plane="onSelectPlane"
-      @view-detail="onViewDetail"
     />
 
     <!-- Flight creation mode overlay -->
@@ -333,5 +327,4 @@ const scheduledRoutes = computed(() =>
 .stationed-plane-icon {
   pointer-events: none !important;
 }
-
 </style>

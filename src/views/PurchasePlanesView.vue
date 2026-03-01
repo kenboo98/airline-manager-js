@@ -76,8 +76,7 @@ function confirmPurchase() {
           <div class="spec">
             <span class="spec-label">Seats</span>
             <span>
-              {{ model.defaultSeats.economy }}E
-              / {{ model.defaultSeats.business }}B
+              {{ model.defaultSeats.economy }}E / {{ model.defaultSeats.business }}B
               <template v-if="model.defaultSeats.firstClass">
                 / {{ model.defaultSeats.firstClass }}F
               </template>
@@ -106,7 +105,11 @@ function confirmPurchase() {
     </div>
 
     <!-- Purchase Modal -->
-    <div v-if="showPurchaseModal && selectedModel" class="modal-overlay" @click.self="closePurchase">
+    <div
+      v-if="showPurchaseModal && selectedModel"
+      class="modal-overlay"
+      @click.self="closePurchase"
+    >
       <div class="modal card">
         <h2>Purchase {{ selectedModel.manufacturer }} {{ selectedModel.name }}</h2>
         <p>Price: {{ formatCurrency(selectedModel.purchasePrice) }}</p>
