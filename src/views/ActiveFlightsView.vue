@@ -29,6 +29,12 @@ function eta(flight: { arrivalTime: number }) {
 function getRegistration(planeId: string) {
   return planeStore.getPlane(planeId)?.registration ?? planeId
 }
+
+function getTotalSeats(planeId: string) {
+  const plane = planeStore.getPlane(planeId)
+  if (!plane) return 0
+  return plane.seats.economy + plane.seats.business + plane.seats.firstClass
+}
 </script>
 
 <template>
@@ -58,7 +64,7 @@ function getRegistration(planeId: string) {
           <span>Plane: {{ getRegistration(flight.planeId) }}</span>
           <span>Distance: {{ Math.round(flight.distanceNm).toLocaleString() }} nm</span>
           <span>
-            Passengers: {{ flight.passengers.economy + flight.passengers.business + flight.passengers.firstClass }}
+            Passengers: {{ flight.passengers.economy + flight.passengers.business + flight.passengers.firstClass }} / {{ getTotalSeats(flight.planeId) }}
           </span>
         </div>
 

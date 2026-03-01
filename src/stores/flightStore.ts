@@ -2,9 +2,12 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { Flight, FlightSchedule, TicketPricing } from '@/types'
 import { generateId } from '@/utils/id'
+import { formatCurrency } from '@/utils/format'
 import { useAirportStore } from './airportStore'
 import { usePlaneStore } from './planeStore'
 import { useCompanyStore } from './companyStore'
+import { useUiStore } from './uiStore'
+import { useGameStore } from './gameStore'
 
 export const useFlightStore = defineStore('flight', () => {
   const flights = ref<Map<string, Flight>>(new Map())
@@ -110,6 +113,8 @@ export const useFlightStore = defineStore('flight', () => {
   function processTick(totalMinutes: number) {
     const planeStore = usePlaneStore()
     const companyStore = useCompanyStore()
+    const uiStore = useUiStore()
+    const airportStore = useAirportStore()
 
     for (const flight of flights.value.values()) {
       // Handle departures
@@ -125,6 +130,9 @@ export const useFlightStore = defineStore('flight', () => {
 
       // Handle arrivals
       if (flight.status === 'in-flight' && totalMinutes >= flight.arrivalTime) {
+        // Pause the game when a plane lands
+        const gameStore = useGameStore()
+        gameStore.pause()
         flight.status = 'arrived'
         const plane = planeStore.getPlane(flight.planeId)
         if (plane) {
@@ -140,6 +148,14 @@ export const useFlightStore = defineStore('flight', () => {
           flight.passengers.firstClass * flight.ticketPricing.firstClass
         flight.revenue = revenue
         companyStore.addRevenue(revenue)
+
+        // Show notification for landed flight
+        const arrivalAirport = airportStore.getByCode(flight.arrivalAirportCode)
+        uiStore.addNotification(
+          `Flight ${flight.flightNumber} arrived at ${arrivalAirport?.code || flight.arrivalAirportCode}. Revenue: ${formatCurrency(revenue)}`,
+          'success',
+          6000,
+        )
       }
     }
 

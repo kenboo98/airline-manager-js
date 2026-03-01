@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import GameBar from '@/components/layout/GameBar.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
+import NotificationContainer from '@/components/NotificationContainer.vue'
 import { useGameStore } from '@/stores/gameStore'
 import { useAirportStore } from '@/stores/airportStore'
 import { usePlaneStore } from '@/stores/planeStore'
@@ -21,6 +22,7 @@ onMounted(() => {
 <template>
   <GameBar />
   <AppSidebar />
+  <NotificationContainer />
   <main class="main-content">
     <RouterView />
   </main>

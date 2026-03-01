@@ -138,6 +138,11 @@ const flyingRoutes = computed(() =>
         progress,
       )
       const angle = bearing(dep.lat, dep.lng, arr.lat, arr.lng)
+      const plane = planeStore.getPlane(f.planeId)
+      const totalSeats = plane
+        ? plane.seats.economy + plane.seats.business + plane.seats.firstClass
+        : 0
+      const passengers = f.passengers.economy + f.passengers.business + f.passengers.firstClass
       return {
         id: f.id,
         latLngs: [
@@ -147,6 +152,8 @@ const flyingRoutes = computed(() =>
         planePos: [pos.lat, pos.lng] as [number, number],
         flightNumber: f.flightNumber,
         icon: createPlaneIcon(angle + SVG_BASE_ANGLE) as unknown as L.Icon,
+        passengers,
+        totalSeats,
       }
     })
     .filter(Boolean),
@@ -254,7 +261,12 @@ const scheduledRoutes = computed(() =>
         :lat-lng="route!.planePos"
         :icon="route!.icon"
       >
-        <LPopup>{{ route!.flightNumber }}</LPopup>
+        <LPopup>
+          <div>
+            <strong>{{ route!.flightNumber }}</strong><br />
+            Passengers: {{ route!.passengers }} / {{ route!.totalSeats }}
+          </div>
+        </LPopup>
       </LMarker>
     </LMap>
 

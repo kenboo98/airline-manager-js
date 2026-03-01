@@ -49,6 +49,50 @@ src/
 
 No circular dependencies. Store dependency: gameStore → flightStore/passengerStore/companyStore, flightStore → airportStore/planeStore/companyStore.
 
+## Notification API
+
+Toast notifications appear centered below the GameBar and auto-dismiss after a configurable duration.
+
+### Usage
+
+```ts
+import { useUiStore } from '@/stores/uiStore'
+const uiStore = useUiStore()
+
+// Simple usage (5s default, 'info' type)
+uiStore.addNotification('Hello world')
+
+// With type and custom duration (in milliseconds)
+uiStore.addNotification('Flight landed!', 'success', 6000)
+
+// Using options object
+uiStore.addNotification({
+  message: 'Warning message',
+  type: 'warning',
+  duration: 8000
+})
+```
+
+### Notification Types
+
+- `'info'` — Blue accent (default)
+- `'success'` — Green accent
+- `'warning'` — Yellow/orange accent
+- `'error'` — Red accent
+
+### Features
+
+- Auto-dismiss with progress bar visualization
+- Pause on hover, resume on mouse leave
+- Manual dismiss via × button
+- Slide-in/slide-out animations
+- Maximum 20 notifications stored (FIFO eviction)
+
+### Components
+
+- `ToastNotification.vue` — Individual toast with type-based styling
+- `NotificationContainer.vue` — Fixed container positioned below GameBar
+
 ## Key Views
 
 - **HomeView** — dashboard with summary cards and quick actions

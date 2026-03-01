@@ -6,6 +6,13 @@ export interface Notification {
   message: string
   type: 'info' | 'success' | 'warning' | 'error'
   timestamp: number
+  duration: number // milliseconds until auto-dismiss
+}
+
+interface AddNotificationOptions {
+  message: string
+  type?: 'info' | 'success' | 'warning' | 'error'
+  duration?: number
 }
 
 export const useUiStore = defineStore('ui', () => {
@@ -17,12 +24,22 @@ export const useUiStore = defineStore('ui', () => {
     sidebarCollapsed.value = !sidebarCollapsed.value
   }
 
-  function addNotification(message: string, type: Notification['type'] = 'info') {
+  function addNotification(
+    messageOrOptions: string | AddNotificationOptions,
+    type: Notification['type'] = 'info',
+    duration: number = 5000,
+  ) {
+    const options: AddNotificationOptions =
+      typeof messageOrOptions === 'string'
+        ? { message: messageOrOptions, type, duration }
+        : messageOrOptions
+
     const notification: Notification = {
       id: crypto.randomUUID(),
-      message,
-      type,
+      message: options.message,
+      type: options.type ?? 'info',
       timestamp: Date.now(),
+      duration: options.duration ?? 5000,
     }
     notifications.value.push(notification)
     if (notifications.value.length > 20) {

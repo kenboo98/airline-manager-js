@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { Company, FinancialRecord } from '@/types'
 
-const STARTING_CASH = 10_000_000
+const STARTING_CASH = 1_000_000
 
 export const useCompanyStore = defineStore('company', () => {
   const company = ref<Company>({
