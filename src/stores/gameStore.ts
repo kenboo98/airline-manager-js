@@ -4,6 +4,7 @@ import type { GameSpeed, GameTime } from '@/types'
 import { useFlightStore } from './flightStore'
 import { usePassengerStore } from './passengerStore'
 import { useCompanyStore } from './companyStore'
+import { useRouteStore } from './routeStore'
 
 const SPEED_MULTIPLIERS: Record<GameSpeed, number> = {
   0: 0,
@@ -39,8 +40,10 @@ export const useGameStore = defineStore('game', () => {
     const flightStore = useFlightStore()
     const passengerStore = usePassengerStore()
     const companyStore = useCompanyStore()
+    const routeStore = useRouteStore()
 
     flightStore.processTick(totalMinutes.value)
+    routeStore.processTick(totalMinutes.value)
     passengerStore.processTick(totalMinutes.value)
     companyStore.processTick(totalMinutes.value)
   }

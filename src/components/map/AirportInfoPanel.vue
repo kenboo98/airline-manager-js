@@ -3,21 +3,26 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAirportStore } from '@/stores/airportStore'
 import { usePlaneStore } from '@/stores/planeStore'
+import { useRouteStore } from '@/stores/routeStore'
 
 const props = defineProps<{ airportCode: string }>()
 const emit = defineEmits<{
   close: []
-  'select-plane': [planeId: string]
+  'create-route': []
   'view-detail': []
 }>()
 
 const router = useRouter()
 const airportStore = useAirportStore()
 const planeStore = usePlaneStore()
+const routeStore = useRouteStore()
 
 const airport = computed(() => airportStore.getByCode(props.airportCode))
 
 const planesHere = computed(() => planeStore.planesAtAirport(props.airportCode))
+
+// Routes that involve this airport
+const routesHere = computed(() => routeStore.getRoutesForAirport(props.airportCode))
 
 // Top 3 destinations from this airport
 const topDestinations = computed(() => {
@@ -31,6 +36,25 @@ const waitingCount = computed(() => {
 
 function onViewFullDetail() {
   router.push(`/airports/${props.airportCode}`)
+}
+
+function onCreateRoute() {
+  emit('create-route')
+}
+
+function getRouteDisplay(route: ReturnType<typeof routeStore.getRoute>) {
+  if (!route) return ''
+  const isOrigin = route.originCode === props.airportCode
+  const otherCode = isOrigin ? route.destinationCode : route.originCode
+  const otherAirport = airportStore.getByCode(otherCode)
+  return `${otherCode} (${otherAirport?.city})`
+}
+
+function getRouteStatus(route: ReturnType<typeof routeStore.getRoute>) {
+  if (!route) return ''
+  const planeCount = route.planeIds.length
+  if (planeCount === 0) return 'No planes assigned'
+  return `${planeCount} plane${planeCount > 1 ? 's' : ''}`
 }
 </script>
 
@@ -49,6 +73,11 @@ function onViewFullDetail() {
         <span>Passengers Waiting</span>
         <span>{{ waitingCount.toLocaleString() }}</span>
       </div>
+
+      <!-- Create Route Button -->
+      <button class="btn btn-primary create-route-btn" @click="onCreateRoute">
+        Create Route from Here
+      </button>
 
       <!-- Top Destinations Section -->
       <div v-if="topDestinations.length > 0" class="destinations-section">
@@ -73,6 +102,27 @@ function onViewFullDetail() {
         <button class="btn btn-link" @click="onViewFullDetail">More details &rarr;</button>
       </div>
 
+      <!-- Routes Section -->
+      <div class="routes-section">
+        <h4>Routes from Here</h4>
+        <div v-if="routesHere.length === 0" class="no-routes">
+          No routes created from this airport
+        </div>
+        <div v-for="route in routesHere" :key="route.id" class="route-row">
+          <div class="route-info">
+            <span class="route-destination">{{ getRouteDisplay(route) }}</span>
+            <span
+              :class="['route-status', route.enabled ? 'enabled' : 'disabled']"
+            >{{ route.enabled ? 'Active' : 'Paused' }}</span>
+          </div>
+          <span class="route-planes">{{ getRouteStatus(route) }}</span>
+        </div>
+        <RouterLink to="/routes" class="btn btn-link view-routes-link">
+          View all routes &rarr;
+        </RouterLink>
+      </div>
+
+      <!-- Planes Section -->
       <div class="planes-section">
         <h4>Your Planes Here</h4>
         <div v-if="planesHere.length === 0" class="no-planes">
@@ -86,9 +136,8 @@ function onViewFullDetail() {
               >{{ plane.seats.economy + plane.seats.business + plane.seats.firstClass }} seats</span
             >
           </div>
-          <button class="btn btn-sm" @click="emit('select-plane', plane.id)">
-            Select for Flight
-          </button>
+          <span v-if="plane.assignedRouteId" class="plane-assigned">Assigned</span>
+          <span v-else class="plane-unassigned">Unassigned</span>
         </div>
       </div>
     </div>
@@ -165,6 +214,12 @@ function onViewFullDetail() {
   opacity: 0.8;
 }
 
+.create-route-btn {
+  width: 100%;
+  margin: 0.5rem 0 0.75rem;
+  justify-content: center;
+}
+
 .destinations-section {
   margin: 0.75rem 0;
   padding: 0.75rem;
@@ -234,6 +289,78 @@ function onViewFullDetail() {
   color: white;
 }
 
+.routes-section {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: var(--color-background-soft);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.routes-section h4 {
+  font-size: 0.85rem;
+  margin: 0 0 0.5rem;
+  opacity: 0.8;
+}
+
+.no-routes {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.route-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.route-row:last-of-type {
+  border-bottom: none;
+}
+
+.route-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.route-destination {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.route-status {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 10px;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.route-status.enabled {
+  background: rgba(39, 174, 96, 0.15);
+  color: var(--color-success);
+}
+
+.route-status.disabled {
+  background: rgba(149, 165, 166, 0.15);
+  color: var(--color-text);
+  opacity: 0.6;
+}
+
+.route-planes {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.view-routes-link {
+  margin-top: 0.5rem;
+}
+
 .planes-section {
   margin-top: 0.75rem;
   border-top: 1px solid var(--color-border);
@@ -256,10 +383,11 @@ function onViewFullDetail() {
   justify-content: space-between;
   padding: 0.4rem 0;
   gap: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.plane-row + .plane-row {
-  border-top: 1px solid var(--color-border);
+.plane-row:last-of-type {
+  border-bottom: none;
 }
 
 .plane-info {
@@ -284,9 +412,24 @@ function onViewFullDetail() {
   opacity: 0.6;
 }
 
-.btn-sm {
-  font-size: 0.75rem;
-  padding: 0.3rem 0.6rem;
+.plane-assigned {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 10px;
+  background: rgba(52, 152, 219, 0.15);
+  color: var(--color-info);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.plane-unassigned {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 10px;
+  background: rgba(149, 165, 166, 0.15);
+  color: var(--color-text);
+  opacity: 0.6;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -301,5 +444,9 @@ function onViewFullDetail() {
   display: block;
   width: 100%;
   text-align: left;
+}
+
+.btn-link:hover {
+  opacity: 0.8;
 }
 </style>

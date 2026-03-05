@@ -4,3 +4,4 @@ export type { TicketPricing, PassengerCount, Flight, FlightSchedule } from './fl
 export type { FinancialRecord, Company } from './company'
 export type { GameSpeed, GameTime } from './game'
 export type { Passenger, PassengerType, AirportPassengers, DestinationDemand } from './passenger'
+export type { Route, RouteMetrics } from './route'

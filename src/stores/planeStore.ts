@@ -49,6 +49,7 @@ export const usePlaneStore = defineStore('plane', () => {
       totalFlightHours: 0,
       currentFlightId: null,
       currentAirportCode: airportCode,
+      assignedRouteId: null,
     }
 
     companyStore.deductCash(model.purchasePrice)

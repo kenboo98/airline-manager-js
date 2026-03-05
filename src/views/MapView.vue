@@ -15,38 +15,30 @@ import {
 import { useAirportStore } from '@/stores/airportStore'
 import { usePlaneStore } from '@/stores/planeStore'
 import { useFlightStore } from '@/stores/flightStore'
+import { useRouteStore } from '@/stores/routeStore'
 import { useGameStore } from '@/stores/gameStore'
 import { interpolatePosition } from '@/utils/geo'
 import planeIconSvg from '@/assets/plane_icon.svg'
 import AirportInfoPanel from '@/components/map/AirportInfoPanel.vue'
-import FlightConfirmModal from '@/components/map/FlightConfirmModal.vue'
+import RouteConfirmModal from '@/components/map/RouteConfirmModal.vue'
 
 const airportStore = useAirportStore()
 const planeStore = usePlaneStore()
 const flightStore = useFlightStore()
+const routeStore = useRouteStore()
 const gameStore = useGameStore()
 
 const selectedAirportCode = ref<string | null>(null)
 
-// Flight creation mode state
-const flightMode = ref<{ departureCode: string; planeId: string } | null>(null)
+// Route creation mode state
+const routeCreationMode = ref<boolean>(false)
+const originCode = ref<string | null>(null)
 const destinationCode = ref<string | null>(null)
 
 function onAirportClick(code: string) {
-  if (flightMode.value) {
-    // In flight creation mode — check if airport is reachable
-    const plane = planeStore.getPlane(flightMode.value.planeId)
-    if (!plane) return
-    const model = planeStore.getModel(plane.modelId)
-    if (!model) return
-
-    const distance = airportStore.getDistanceNm(flightMode.value.departureCode, code)
-    const airport = airportStore.getByCode(code)
-    if (!airport) return
-
-    if (code === flightMode.value.departureCode) return
-    if (distance > model.range) return
-    if (model.minRunwayLength > airport.runwayLength) return
+  if (routeCreationMode.value && originCode.value) {
+    // In route creation mode — select destination
+    if (code === originCode.value) return // Can't route to same airport
 
     destinationCode.value = code
   } else {
@@ -54,24 +46,28 @@ function onAirportClick(code: string) {
   }
 }
 
-function onSelectPlane(planeId: string) {
-  const departureCode = selectedAirportCode.value
-  if (!departureCode) return
-  selectedAirportCode.value = null
-  flightMode.value = { departureCode, planeId }
+function onCreateRoute() {
+  // Start route creation mode from the selected airport
+  if (selectedAirportCode.value) {
+    originCode.value = selectedAirportCode.value
+    selectedAirportCode.value = null
+    routeCreationMode.value = true
+  }
 }
 
-function cancelFlightMode() {
-  flightMode.value = null
+function cancelRouteCreation() {
+  routeCreationMode.value = false
+  originCode.value = null
   destinationCode.value = null
 }
 
-function onModalConfirm() {
-  flightMode.value = null
+function onRouteConfirm() {
+  routeCreationMode.value = false
+  originCode.value = null
   destinationCode.value = null
 }
 
-function onModalCancel() {
+function onRouteCancel() {
   destinationCode.value = null
 }
 
@@ -81,17 +77,30 @@ function onClosePanel() {
 
 const airports = computed(() => airportStore.airportList)
 
-// Range circle data for flight creation mode
+// Range circle data for route creation mode (show max range from any plane at origin)
 const rangeCircle = computed(() => {
-  if (!flightMode.value) return null
-  const airport = airportStore.getByCode(flightMode.value.departureCode)
-  const plane = planeStore.getPlane(flightMode.value.planeId)
-  if (!airport || !plane) return null
-  const model = planeStore.getModel(plane.modelId)
-  if (!model) return null
+  if (!routeCreationMode.value || !originCode.value) return null
+
+  const airport = airportStore.getByCode(originCode.value)
+  if (!airport) return null
+
+  // Get planes at this airport and find the max range
+  const planes = planeStore.planesAtAirport(originCode.value)
+  if (planes.length === 0) return null
+
+  let maxRange = 0
+  for (const plane of planes) {
+    const model = planeStore.getModel(plane.modelId)
+    if (model && model.range > maxRange) {
+      maxRange = model.range
+    }
+  }
+
+  if (maxRange === 0) return null
+
   return {
     center: [airport.lat, airport.lng] as [number, number],
-    radius: model.range * 1852, // nm to meters
+    radius: maxRange * 1852, // nm to meters
   }
 })
 
@@ -163,22 +172,24 @@ const airportsWithPlanes = computed(() => {
   return codes
 })
 
-const scheduledRoutes = computed(() =>
-  flightStore.scheduledFlights
-    .map((f) => {
-      const dep = airportStore.getByCode(f.departureAirportCode)
-      const arr = airportStore.getByCode(f.arrivalAirportCode)
-      if (!dep || !arr) return null
-      return {
-        id: f.id,
-        latLngs: [
-          [dep.lat, dep.lng],
-          [arr.lat, arr.lng],
-        ] as [number, number][],
-      }
-    })
-    .filter(Boolean),
-)
+// Route polylines from route store
+const establishedRoutes = computed(() => routeStore.routePolylines)
+
+// Temp route line during creation
+const tempRouteLine = computed(() => {
+  if (!routeCreationMode.value || !originCode.value || !destinationCode.value) return null
+
+  const origin = airportStore.getByCode(originCode.value)
+  const dest = airportStore.getByCode(destinationCode.value)
+  if (!origin || !dest) return null
+
+  return {
+    latLngs: [
+      [origin.lat, origin.lng],
+      [dest.lat, dest.lng],
+    ] as [number, number][],
+  }
+})
 </script>
 
 <template>
@@ -217,7 +228,7 @@ const scheduledRoutes = computed(() =>
         />
       </LMarker>
 
-      <!-- Range circle in flight creation mode -->
+      <!-- Range circle in route creation mode -->
       <LCircle
         v-if="rangeCircle"
         :lat-lng="rangeCircle.center"
@@ -227,15 +238,25 @@ const scheduledRoutes = computed(() =>
         :weight="2"
       />
 
-      <!-- Scheduled flight routes (dashed red) -->
+      <!-- Established routes (solid green for enabled, dashed gray for disabled) -->
       <LPolyline
-        v-for="route in scheduledRoutes"
-        :key="'s-' + route!.id"
+        v-for="route in establishedRoutes"
+        :key="'route-' + route!.id"
         :lat-lngs="route!.latLngs"
-        color="#e74c3c"
-        :weight="2"
-        :opacity="0.5"
-        dash-array="6 4"
+        :color="route!.enabled ? '#27ae60' : '#95a5a6'"
+        :weight="route!.enabled ? 2.5 : 2"
+        :opacity="route!.enabled ? 0.7 : 0.4"
+        :dash-array="route!.enabled ? undefined : '6 4'"
+      />
+
+      <!-- Temp route line during creation -->
+      <LPolyline
+        v-if="tempRouteLine"
+        :lat-lngs="tempRouteLine.latLngs"
+        color="#3498db"
+        :weight="3"
+        :opacity="0.8"
+        dash-array="8 6"
       />
 
       <!-- Active flight routes (solid blue) -->
@@ -267,26 +288,30 @@ const scheduledRoutes = computed(() =>
 
     <!-- Airport info panel (normal mode) -->
     <AirportInfoPanel
-      v-if="selectedAirportCode && !flightMode"
+      v-if="selectedAirportCode && !routeCreationMode"
       :airport-code="selectedAirportCode"
       @close="onClosePanel"
-      @select-plane="onSelectPlane"
+      @create-route="onCreateRoute"
     />
 
-    <!-- Flight creation mode overlay -->
-    <div v-if="flightMode" class="flight-mode-banner">
-      <span>Select a destination airport within range</span>
-      <button class="btn btn-sm" @click="cancelFlightMode">Cancel</button>
+    <!-- Route creation mode overlay -->
+    <div v-if="routeCreationMode" class="route-mode-banner">
+      <template v-if="!destinationCode">
+        <span>Select a destination airport</span>
+      </template>
+      <template v-else>
+        <span>Confirm route creation</span>
+      </template>
+      <button class="btn btn-sm" @click="cancelRouteCreation">Cancel</button>
     </div>
 
-    <!-- Flight confirm modal -->
-    <FlightConfirmModal
-      v-if="flightMode && destinationCode"
-      :departure-code="flightMode.departureCode"
-      :arrival-code="destinationCode"
-      :plane-id="flightMode.planeId"
-      @confirm="onModalConfirm"
-      @cancel="onModalCancel"
+    <!-- Route confirm modal -->
+    <RouteConfirmModal
+      v-if="routeCreationMode && originCode && destinationCode"
+      :origin-code="originCode"
+      :destination-code="destinationCode"
+      @confirm="onRouteConfirm"
+      @cancel="onRouteCancel"
     />
   </div>
 </template>
@@ -298,7 +323,7 @@ const scheduledRoutes = computed(() =>
   height: calc(100vh - var(--gamebar-height) - 3rem);
 }
 
-.flight-mode-banner {
+.route-mode-banner {
   position: absolute;
   top: 1rem;
   left: 50%;

@@ -8,6 +8,7 @@ const navLinks = [
   { to: '/', label: 'Dashboard' },
   { to: '/map', label: 'Map' },
   { to: '/airports', label: 'Airports' },
+  { to: '/routes', label: 'Routes' },
   { to: '/planes/buy', label: 'Buy Planes' },
   { to: '/planes', label: 'Fleet' },
   { to: '/flights/active', label: 'Active Flights' },

@@ -20,4 +20,5 @@ export interface OwnedPlane {
   totalFlightHours: number
   currentFlightId: string | null
   currentAirportCode: string
+  assignedRouteId: string | null
 }
