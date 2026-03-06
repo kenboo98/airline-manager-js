@@ -8,9 +8,12 @@ const navLinks = [
   { to: '/', label: 'Dashboard' },
   { to: '/map', label: 'Map' },
   { to: '/airports', label: 'Airports' },
+  { to: '/hubs', label: 'Hubs' },
   { to: '/routes', label: 'Routes' },
   { to: '/planes/buy', label: 'Buy Planes' },
   { to: '/planes', label: 'Fleet' },
+  { to: '/maintenance', label: 'Maintenance' },
+  { to: '/upgrades', label: 'Upgrades' },
   { to: '/flights/active', label: 'Active Flights' },
   { to: '/company', label: 'Company' },
 ]

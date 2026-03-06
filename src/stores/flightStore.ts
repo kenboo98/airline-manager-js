@@ -7,6 +7,9 @@ import { useAirportStore } from './airportStore'
 import { usePlaneStore } from './planeStore'
 import { useCompanyStore } from './companyStore'
 import { useUiStore } from './uiStore'
+import { useHubStore } from './hubStore'
+import { useUpgradeStore } from './upgradeStore'
+import { useMaintenanceStore } from './maintenanceStore'
 
 export const useFlightStore = defineStore('flight', () => {
   const flights = ref<Map<string, Flight>>(new Map())
@@ -51,10 +54,18 @@ export const useFlightStore = defineStore('flight', () => {
       model.speed,
     )
 
-    const cost = distance * model.operatingCostPerNm
+    const hubStore = useHubStore()
+    const upgradeStore = useUpgradeStore()
+    const maintenanceStore = useMaintenanceStore()
+
+    const effects = upgradeStore.getEffectiveStats(params.planeId)
+    const conditionPenalty = maintenanceStore.getConditionPenalty(params.planeId)
+    const cost = distance * model.operatingCostPerNm * (effects.operatingCostMultiplier ?? 1) * conditionPenalty
+
     const depAirport = airportStore.getByCode(params.departureAirportCode)
     const arrAirport = airportStore.getByCode(params.arrivalAirportCode)
-    const landingFees = (depAirport?.landingFee ?? 0) + (arrAirport?.landingFee ?? 0)
+    const discount = hubStore.hubLandingFeeDiscount(params.departureAirportCode, params.arrivalAirportCode)
+    const landingFees = ((depAirport?.landingFee ?? 0) + (arrAirport?.landingFee ?? 0)) * discount
 
     const flight: Flight = {
       id: generateId(),

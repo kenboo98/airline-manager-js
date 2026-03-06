@@ -8,6 +8,7 @@ import { useAirportStore } from './airportStore'
 import { useCompanyStore } from './companyStore'
 import { useGameStore } from './gameStore'
 import { useUiStore } from './uiStore'
+import { useHubStore } from './hubStore'
 import { formatCurrency } from '@/utils/format'
 import { computeFairPrice } from '@/utils/pricing'
 
@@ -45,7 +46,10 @@ export const useRouteStore = defineStore('route', () => {
     originCode: string
     destinationCode: string
     ticketPricing: TicketPricing
-  }): Route {
+  }): Route | null {
+    const hubStore = useHubStore()
+    if (!hubStore.isHub(params.originCode)) return null
+
     const route: Route = {
       id: generateId(),
       originCode: params.originCode,

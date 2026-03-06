@@ -17,6 +17,7 @@ import { usePlaneStore } from '@/stores/planeStore'
 import { useFlightStore } from '@/stores/flightStore'
 import { useRouteStore } from '@/stores/routeStore'
 import { useGameStore } from '@/stores/gameStore'
+import { useHubStore } from '@/stores/hubStore'
 import { interpolatePosition } from '@/utils/geo'
 import planeIconSvg from '@/assets/plane_icon.svg'
 import AirportInfoPanel from '@/components/map/AirportInfoPanel.vue'
@@ -27,6 +28,21 @@ const planeStore = usePlaneStore()
 const flightStore = useFlightStore()
 const routeStore = useRouteStore()
 const gameStore = useGameStore()
+const hubStore = useHubStore()
+
+const hubCodes = computed(() => new Set(hubStore.hubCodes()))
+
+function airportIcon(code: string) {
+  const isHub = hubCodes.value.has(code)
+  return divIcon({
+    html: isHub
+      ? `<div class="hub-marker"><span>H</span></div>`
+      : `<div class="airport-marker"></div>`,
+    iconSize: isHub ? [20, 20] : [10, 10],
+    iconAnchor: isHub ? [10, 10] : [5, 5],
+    className: '',
+  }) as unknown as L.Icon
+}
 
 const selectedAirportCode = ref<string | null>(null)
 
@@ -205,11 +221,13 @@ const tempRouteLine = computed(() => {
         v-for="airport in airports"
         :key="airport.code"
         :lat-lng="[airport.lat, airport.lng]"
+        :icon="airportIcon(airport.code)"
         @click="onAirportClick(airport.code)"
       >
         <LPopup>
-          <strong>{{ airport.code }}</strong
-          ><br />
+          <strong>{{ airport.code }}</strong>
+          <span v-if="hubCodes.has(airport.code)" class="hub-label"> (Hub)</span>
+          <br />
           {{ airport.name }}
         </LPopup>
       </LMarker>
@@ -351,5 +369,38 @@ const tempRouteLine = computed(() => {
 
 .stationed-plane-icon {
   pointer-events: none !important;
+}
+
+.airport-marker {
+  width: 10px;
+  height: 10px;
+  background: #3498db;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.hub-marker {
+  width: 20px;
+  height: 20px;
+  background: #f59e0b;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6), 0 1px 4px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hub-marker span {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hub-label {
+  color: #f59e0b;
+  font-weight: 600;
 }
 </style>

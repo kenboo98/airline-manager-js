@@ -16,9 +16,11 @@ export interface OwnedPlane {
   modelId: string
   registration: string
   seats: { economy: number; business: number; firstClass: number }
-  status: 'available' | 'in-flight' | 'maintenance'
+  status: 'available' | 'in-flight' | 'maintenance' | 'upgrading'
   totalFlightHours: number
   currentFlightId: string | null
   currentAirportCode: string
   assignedRouteId: string | null
+  maintenanceState: import('./maintenance').PlaneMaintenanceState
+  installedUpgrades: import('./upgrade').InstalledUpgrade[]
 }

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAirportStore } from '@/stores/airportStore'
 import { usePlaneStore } from '@/stores/planeStore'
 import { useRouteStore } from '@/stores/routeStore'
+import { useHubStore } from '@/stores/hubStore'
 
 const props = defineProps<{ airportCode: string }>()
 const emit = defineEmits<{
@@ -16,6 +17,9 @@ const router = useRouter()
 const airportStore = useAirportStore()
 const planeStore = usePlaneStore()
 const routeStore = useRouteStore()
+const hubStore = useHubStore()
+
+const isHub = computed(() => hubStore.isHub(props.airportCode))
 
 const airport = computed(() => airportStore.getByCode(props.airportCode))
 
@@ -75,9 +79,14 @@ function getRouteStatus(route: ReturnType<typeof routeStore.getRoute>) {
       </div>
 
       <!-- Create Route Button -->
-      <button class="btn btn-primary create-route-btn" @click="onCreateRoute">
+      <button
+        v-if="isHub"
+        class="btn btn-primary create-route-btn"
+        @click="onCreateRoute"
+      >
         Create Route from Here
       </button>
+      <p v-else class="hub-hint">Purchase as a hub to create routes from here</p>
 
       <!-- Top Destinations Section -->
       <div v-if="topDestinations.length > 0" class="destinations-section">
@@ -218,6 +227,13 @@ function getRouteStatus(route: ReturnType<typeof routeStore.getRoute>) {
   width: 100%;
   margin: 0.5rem 0 0.75rem;
   justify-content: center;
+}
+
+.hub-hint {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  text-align: center;
+  margin: 0.5rem 0 0.75rem;
 }
 
 .destinations-section {

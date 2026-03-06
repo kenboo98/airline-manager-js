@@ -4,28 +4,36 @@ import { RouterView } from 'vue-router'
 import GameBar from '@/components/layout/GameBar.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import NotificationContainer from '@/components/NotificationContainer.vue'
+import GameSetupView from '@/views/GameSetupView.vue'
 import { useGameStore } from '@/stores/gameStore'
 import { useAirportStore } from '@/stores/airportStore'
 import { usePlaneStore } from '@/stores/planeStore'
+import { useUpgradeStore } from '@/stores/upgradeStore'
 
 const gameStore = useGameStore()
 const airportStore = useAirportStore()
 const planeStore = usePlaneStore()
+const upgradeStore = useUpgradeStore()
 
 onMounted(() => {
   airportStore.loadAirports()
   planeStore.loadCatalog()
-  gameStore.startGame()
+  upgradeStore.loadCatalog()
 })
 </script>
 
 <template>
-  <GameBar />
-  <AppSidebar />
-  <NotificationContainer />
-  <main class="main-content">
-    <RouterView />
-  </main>
+  <template v-if="!gameStore.setupComplete">
+    <GameSetupView />
+  </template>
+  <template v-else>
+    <GameBar />
+    <AppSidebar />
+    <NotificationContainer />
+    <main class="main-content">
+      <RouterView />
+    </main>
+  </template>
 </template>
 
 <style scoped>

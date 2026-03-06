@@ -55,6 +55,26 @@ const router = createRouter({
       name: 'about',
       component: () => import('../views/AboutView.vue'),
     },
+    {
+      path: '/setup',
+      name: 'setup',
+      component: () => import('../views/GameSetupView.vue'),
+    },
+    {
+      path: '/hubs',
+      name: 'hubs',
+      component: () => import('../views/HubsView.vue'),
+    },
+    {
+      path: '/maintenance',
+      name: 'maintenance',
+      component: () => import('../views/MaintenanceView.vue'),
+    },
+    {
+      path: '/upgrades',
+      name: 'upgrades',
+      component: () => import('../views/UpgradesView.vue'),
+    },
   ],
 })
 

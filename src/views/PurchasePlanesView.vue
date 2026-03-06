@@ -2,13 +2,19 @@
 import { ref, computed } from 'vue'
 import { usePlaneStore } from '@/stores/planeStore'
 import { useCompanyStore } from '@/stores/companyStore'
+import { useHubStore } from '@/stores/hubStore'
 import { useAirportStore } from '@/stores/airportStore'
 import { formatCurrency } from '@/utils/format'
 import type { PlaneModel } from '@/types'
 
 const planeStore = usePlaneStore()
 const companyStore = useCompanyStore()
+const hubStore = useHubStore()
 const airportStore = useAirportStore()
+
+const hubAirports = computed(() =>
+  hubStore.hubList.map((h) => airportStore.getByCode(h.airportCode)).filter(Boolean),
+)
 
 const showPurchaseModal = ref(false)
 const selectedModel = ref<PlaneModel | null>(null)
@@ -120,17 +126,17 @@ function confirmPurchase() {
         </div>
 
         <div class="form-group">
-          <label>Home Airport</label>
+          <label>Hub Airport</label>
           <select v-model="homeAirport" class="input">
-            <option value="" disabled>Select airport</option>
+            <option value="" disabled>Select hub</option>
             <option
-              v-for="ap in airportStore.airportList"
-              :key="ap.code"
-              :value="ap.code"
-              :disabled="ap.runwayLength < selectedModel.minRunwayLength"
+              v-for="ap in hubAirports"
+              :key="ap!.code"
+              :value="ap!.code"
+              :disabled="ap!.runwayLength < selectedModel.minRunwayLength"
             >
-              {{ ap.code }} — {{ ap.city }}
-              <template v-if="ap.runwayLength < selectedModel.minRunwayLength">
+              {{ ap!.code }} — {{ ap!.city }}
+              <template v-if="ap!.runwayLength < selectedModel.minRunwayLength">
                 (runway too short)
               </template>
             </option>
